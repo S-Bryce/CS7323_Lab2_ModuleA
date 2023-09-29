@@ -9,9 +9,10 @@
 import UIKit
 import Metal
 
-class ViewController: UIViewController {
-
-
+class GraphController: UIViewController {
+    
+    @IBOutlet weak var peak1st: UILabel!
+    @IBOutlet weak var peak2nd: UILabel!
 
     @IBOutlet weak var userView: UIView!
     struct AudioConstants{
@@ -23,10 +24,6 @@ class ViewController: UIViewController {
     lazy var graph:MetalGraph? = {
         return MetalGraph(userView: self.userView)
     }()
-    
-    override func viewWillDisappear(_ animated: Bool) {
-        audio.pause()
-    }
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -74,13 +71,9 @@ class ViewController: UIViewController {
             )
         }
 		
-		if let audio = self.audio {
-			audio.updatePeaks(highestFreq: self.peak1st, secondHighestFreq: self.peak2nd)
-		}
+        audio.updatePeaks(highestFreq: self.peak1st, secondHighestFreq: self.peak2nd)
         
     }
-    
-    
 
 }
 

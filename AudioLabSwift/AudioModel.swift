@@ -8,14 +8,15 @@
 
 import Foundation
 import Accelerate
+import UIKit
 
 class AudioModel {
     
     // MARK: Properties
     private var BUFFER_SIZE:Int
 	private var BATCH_SIZE:Int
-	private var first_highest_freq:Int
-	private var second_highest_freq:Int
+	private var first_highest_freq:Float
+    private var second_highest_freq:Float
 	private var highest_local_idx:Int
 	
     // thse properties are for interfaceing with the API
@@ -58,8 +59,8 @@ class AudioModel {
     }
 	
 	func updatePeaks(highestFreq:UILabel, secondHighestFreq:UILabel){
-		highestFreq.text = first_highest_freq
-		secondHighestFreq.text = second_highest_freq
+		highestFreq.text = String(first_highest_freq)
+		secondHighestFreq.text = String(second_highest_freq)
 	}
     
     //==========================================
@@ -97,9 +98,16 @@ class AudioModel {
             //   fftData:  the FFT of those same samples
             // the user can now use these variables however they like
 
-            // Compute maxima of ArraySlice (with a size of BATCH_SIZE) through max(by: {$0 < $1}) w/ unwrapping optional Float to Float.leastNormalMagnitude
             for slice in stride(from: 0, to: fftData.count-1, by: BATCH_SIZE) {
-                highest_local_idx = fftData[slice...min(slice+BATCH_SIZE-1, fftData.count - 1)].argmax(by: <) ?? Float.leastNormalMagnitude
+                let temp = Array(fftData[slice...min(slice+BATCH_SIZE-1, fftData.count - 1)])
+                
+                highest_local_idx = 0
+                for (index, value) in temp.enumerated() {
+                    if value > temp[highest_local_idx] {
+                        highest_local_idx = index
+                    }
+                }
+                highest_local_idx = highest_local_idx + slice
 				
 				if fftData[highest_local_idx] > first_highest_freq {
 					second_highest_freq = first_highest_freq
