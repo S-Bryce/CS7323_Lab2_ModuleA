@@ -9,71 +9,63 @@
 import UIKit
 import Metal
 
-class GraphController: UIViewController {
+class GraphController: UIViewController, AudioModelDelegate {
     
     @IBOutlet weak var peak1st: UILabel!
     @IBOutlet weak var peak2nd: UILabel!
-
+    
     @IBOutlet weak var userView: UIView!
-    struct AudioConstants{
-        static let AUDIO_BUFFER_SIZE = 1024*4
+    struct AudioConstants {
+        static let AUDIO_BUFFER_SIZE = 1024 * 16
     }
     
     // setup audio model
     let audio = AudioModel(buffer_size: AudioConstants.AUDIO_BUFFER_SIZE)
-    lazy var graph:MetalGraph? = {
+    lazy var graph: MetalGraph? = {
         return MetalGraph(userView: self.userView)
     }()
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        if let graph = self.graph{
+        // Set the delegate to receive updates
+        audio.delegate = self
+        
+        if let graph = self.graph {
             graph.setBackgroundColor(r: 0, g: 0, b: 0, a: 1)
             
             // add in graphs for display
             // note that we need to normalize the scale of this graph
-            // becasue the fft is returned in dB which has very large negative values and some large positive values
+            // because the fft is returned in dB which has very large negative values and some large positive values
             graph.addGraph(withName: "fft",
                             shouldNormalizeForFFT: true,
                             numPointsInGraph: AudioConstants.AUDIO_BUFFER_SIZE/2)
             
             graph.addGraph(withName: "time",
-                numPointsInGraph: AudioConstants.AUDIO_BUFFER_SIZE)
+                            numPointsInGraph: AudioConstants.AUDIO_BUFFER_SIZE)
             
             graph.makeGrids() // add grids to graph
         }
         
-        // start up the audio model here, querying microphone
-        audio.startMicrophoneProcessing(withFps: 60) // preferred number of FFT calculations per second
-
-        audio.play()
+        // start up the audio model here, querying the microphone
+        audio.startMicrophoneProcessing(withFps: 5) // preferred number of FFT calculations per second
         
-        // run the loop for updating the graph & shown values peridocially
-        Timer.scheduledTimer(withTimeInterval: 1.0/60, repeats: true) { _ in
-            self.updateDisplay()
-        }
-       
+        audio.play()
     }
     
-    // periodically, update the graph with refreshed FFT Data
-    func updateDisplay(){
-        
-        if let graph = self.graph{
-            graph.updateGraph(
-                data: self.audio.fftData,
-                forKey: "fft"
-            )
-            
-            graph.updateGraph(
-                data: self.audio.timeData,
-                forKey: "time"
-            )
+    // MARK: AudioModelDelegate Methods
+    
+    func updateGraphs(fftData: [Float], timeData: [Float]) {
+        // Update the graph with refreshed FFT Data
+        if let graph = self.graph {
+            graph.updateGraph(data: fftData, forKey: "fft")
+            graph.updateGraph(data: timeData, forKey: "time")
         }
-		
-        audio.updatePeaks(highestFreq: self.peak1st, secondHighestFreq: self.peak2nd)
-        
     }
-
+    
+    func updatePeaks(highestFreq: Float, secondHighestFreq: Float) {
+        // Update the UI with the peak frequencies
+        peak1st.text = String(highestFreq)
+        peak2nd.text = String(secondHighestFreq)
+    }
 }
-
